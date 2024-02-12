@@ -47,14 +47,17 @@ class WS
         @initialized
     end
 
-    def send_sync(data)
+    def send(data)
         parsed_data = JsonRpcObjects::Request::parse(data)
         parsed_data.check!
 
         @ws.send(data)
+    end
 
+    def send_sync(data)
+        send(data)
         Timeout.timeout(30) do
-            while !@response[parsed_data.id]
+            while @response[parsed_data.id].nil?
                 sleep 1
             end
         end
