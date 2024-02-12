@@ -3,6 +3,15 @@ require "json-rpc-objects/v20/request"
 require "json-rpc-objects/request"
 require 'timeout'
 
+
+def sleep_until(timeout_sec = 30, &_)
+    Timeout.timeout(timeout_sec) do
+        until yield do
+            sleep 0.1
+        end
+    end
+end
+
 class WS
     def initialize
         @ws = nil
@@ -38,13 +47,6 @@ class WS
         # nothing to do
     end
 
-    def sleep_until(timeout_sec = 30, &_)
-        Timeout.timeout(timeout_sec) do
-            until yield do
-                sleep 0.1
-            end
-        end
-    end
 end
 
 class JSONRPConWS < WS
