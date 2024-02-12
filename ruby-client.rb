@@ -54,13 +54,13 @@ class JSONRPConWS < WS
 
         def initialize
             @mutex = Mutex.new
-            @response = {}
+            @data = {}
         end
 
         WRAP_METHODS.each do |method|
             define_method(method) do |*args|
                 @mutex.synchronize do
-                    @response.public_send(method, *args)
+                    @data.public_send(method, *args)
                 end
             end
         end
