@@ -50,26 +50,18 @@ end
 class JSONRPConWS < WS
 
     class Response
+        WRAP_METHODS = %w[[] []= delete].freeze
+
         def initialize
             @mutex = Mutex.new
             @response = {}
         end
-    
-        def [](key)
-            @mutex.synchronize do
-                @response[key]
-            end
-        end
-    
-        def []=(key, value)
-            @mutex.synchronize do
-                @response[key] = value
-            end
-        end
-    
-        def delete(key)
-            @mutex.synchronize do
-                @response.delete(key)
+
+        WRAP_METHODS.each do |method|
+            define_method(method) do |*args|
+                @mutex.synchronize do
+                    @response.public_send(method, *args)
+                end
             end
         end
     end
