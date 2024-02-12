@@ -1,6 +1,7 @@
 require 'websocket-eventmachine-client'
 require "json-rpc-objects/v20/request"
 require "json-rpc-objects/request"
+require "json-rpc-objects/response"
 require 'timeout'
 
 
@@ -91,10 +92,10 @@ class JSONRPConWS < WS
     private
 
     def message_handler(data, type)
-        parsed_data = JsonRpcObjects::Request::parse(data)
+        parsed_data = JsonRpcObjects::Response::parse(data)
         parsed_data.check!
 
-        @response[parsed_data.id] = data
+        @response[parsed_data.id] = parsed_data.result
     end
 
 end
