@@ -3,9 +3,41 @@ require "json-rpc-objects/v20/request"
 require "json-rpc-objects/request"
 require 'timeout'
 
+class Response
+    def initialize
+        @mutex = Mutex.new
+        @response = {}
+    end
+
+    def [](key)
+        @mutex.lock
+        value = @response[key]
+        @mutex.unlock
+
+        value
+    end
+
+    def []=(key, value)
+        @mutex.lock
+        @response[key] = value
+        @mutex.unlock
+
+        value
+    end
+
+    def delete(key)
+        @mutex.lock
+        value = @response.delete(key)
+        @mutex.unlock
+
+        value
+
+    end
+end
+
 class WS
     def initialize
-        @response = {}
+        @response = Response.new
         Thread.new do
             EM.run do
                 @ws = WebSocket::EventMachine::Client.connect(:uri => 'ws://localhost:8888')
@@ -52,13 +84,15 @@ class WS
         parsed_data.check!
 
         @ws.send(data)
+
+        parsed_data
     end
 
     def send_sync(data)
-        send(data)
+        parsed_data = send(data)
         Timeout.timeout(30) do
             while @response[parsed_data.id].nil?
-                sleep 1
+                sleep 0.1
             end
         end
 
