@@ -10,73 +10,48 @@ class Response
     end
 
     def [](key)
-        @mutex.lock
-        value = @response[key]
-        @mutex.unlock
-
-        value
+        @mutex.synchronize do
+            @response[key]
+        end
     end
 
     def []=(key, value)
-        @mutex.lock
-        @response[key] = value
-        @mutex.unlock
-
-        value
+        @mutex.synchronize do
+            @response[key] = value
+        end
     end
 
     def delete(key)
-        @mutex.lock
-        value = @response.delete(key)
-        @mutex.unlock
-
-        value
-
+        @mutex.synchronize do
+            @response.delete(key)
+        end
     end
 end
 
 class WS
     def initialize
         @response = Response.new
+        @ws = nil
+        @connection_initialized = nil
+    end
+
+    def connection_initialized?
+        @connection_initialized
+    end
+
+    def connect(uri)
         Thread.new do
             EM.run do
-                @ws = WebSocket::EventMachine::Client.connect(:uri => 'ws://localhost:8888')
-
-                @ws.onopen do
-                    puts "Connected"
-                end
-
-                @ws.onmessage do |data, type|
-                    puts "Received message: #{data}, type: #{type}"
-
-                    parsed_data = JsonRpcObjects::Request::parse(data)
-                    parsed_data.check!
-
-                    @response[parsed_data.id] = data
-                end
-
-                @ws.onclose do |code, reason|
-                    puts "Disconnected with status code: #{code}"
-                end
-
-                @initialized = true
+                @ws = WebSocket::EventMachine::Client.connect(uri:)
+                @ws.onmessage {|data, type| message_handler(data, type) }
+                @connection_initialized = true
             end
         end
     end
 
-    def self.initialize_sync
-        this = new
-        Timeout.timeout(30) do
-            while !this.initialized? do
-                sleep 0.1
-            end
-        end
-
-        this
-    end
-
-    def initialized?
-        @initialized
+    def connect_sync(uri)
+        connect(uri)
+        sleep_until { connection_initialized? }
     end
 
     def send(data)
@@ -90,17 +65,31 @@ class WS
 
     def send_sync(data)
         parsed_data = send(data)
-        Timeout.timeout(30) do
-            while @response[parsed_data.id].nil?
-                sleep 0.1
-            end
-        end
+        sleep_until { @response[parsed_data.id] }
 
         @response.delete(parsed_data.id)
     end
+
+    private
+
+    def message_handler(data, type)
+        parsed_data = JsonRpcObjects::Request::parse(data)
+        parsed_data.check!
+
+        @response[parsed_data.id] = data
+    end
+
+    def sleep_until(timeout_sec = 30, &_)
+        Timeout.timeout(timeout_sec) do
+            until yield do
+                sleep 0.1
+            end
+        end
+    end
 end
 
-ws = WS.initialize_sync
+ws = WS.new
+ws.connect_sync('ws://localhost:8888')
 
 rpc_json_data = JsonRpcObjects::V20::Request::create(:subtract, ["1", "2"], :id => "a2b3")
 ws.send_sync(rpc_json_data.serialize)
