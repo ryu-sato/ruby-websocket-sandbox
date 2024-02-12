@@ -3,34 +3,8 @@ require "json-rpc-objects/v20/request"
 require "json-rpc-objects/request"
 require 'timeout'
 
-class Response
-    def initialize
-        @mutex = Mutex.new
-        @response = {}
-    end
-
-    def [](key)
-        @mutex.synchronize do
-            @response[key]
-        end
-    end
-
-    def []=(key, value)
-        @mutex.synchronize do
-            @response[key] = value
-        end
-    end
-
-    def delete(key)
-        @mutex.synchronize do
-            @response.delete(key)
-        end
-    end
-end
-
 class WS
     def initialize
-        @response = Response.new
         @ws = nil
         @connection_initialized = nil
     end
@@ -40,7 +14,7 @@ class WS
     end
 
     def connect(uri)
-        Thread.new do
+        Thread.start do
             EM.run do
                 @ws = WebSocket::EventMachine::Client.connect(uri:)
                 @ws.onmessage {|data, type| message_handler(data, type) }
@@ -55,10 +29,60 @@ class WS
     end
 
     def send(data)
+        @ws.send(data)
+    end
+
+    private
+
+    def message_handler(data, type)
+        # nothing to do
+    end
+
+    def sleep_until(timeout_sec = 30, &_)
+        Timeout.timeout(timeout_sec) do
+            until yield do
+                sleep 0.1
+            end
+        end
+    end
+end
+
+class JSONRPConWS < WS
+
+    class Response
+        def initialize
+            @mutex = Mutex.new
+            @response = {}
+        end
+    
+        def [](key)
+            @mutex.synchronize do
+                @response[key]
+            end
+        end
+    
+        def []=(key, value)
+            @mutex.synchronize do
+                @response[key] = value
+            end
+        end
+    
+        def delete(key)
+            @mutex.synchronize do
+                @response.delete(key)
+            end
+        end
+    end
+
+    def initialize
+        @response = Response.new
+    end
+
+    def send(data)
         parsed_data = JsonRpcObjects::Request::parse(data)
         parsed_data.check!
 
-        @ws.send(data)
+        super(data)
 
         parsed_data
     end
@@ -79,17 +103,10 @@ class WS
         @response[parsed_data.id] = data
     end
 
-    def sleep_until(timeout_sec = 30, &_)
-        Timeout.timeout(timeout_sec) do
-            until yield do
-                sleep 0.1
-            end
-        end
-    end
 end
 
-ws = WS.new
+ws = JSONRPConWS.new
 ws.connect_sync('ws://localhost:8888')
 
 rpc_json_data = JsonRpcObjects::V20::Request::create(:subtract, ["1", "2"], :id => "a2b3")
-ws.send_sync(rpc_json_data.serialize)
+p ws.send_sync(rpc_json_data.serialize)
