@@ -50,14 +50,14 @@ end
 class JSONRPConWS < WS
 
     class Response
-        WRAP_METHODS = %w[[] []= delete].freeze
+        ACCESS_METHODS = %w[[] []= delete].freeze
 
         def initialize
             @mutex = Mutex.new
             @data = {}
         end
 
-        WRAP_METHODS.each do |method|
+        ACCESS_METHODS.each do |method|
             define_method(method) do |*args|
                 @mutex.synchronize do
                     @data.public_send(method, *args)
