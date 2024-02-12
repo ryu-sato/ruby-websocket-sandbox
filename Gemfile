@@ -17,3 +17,5 @@ gem "websocket-driver", "~> 0.7.6"
 gem "json-rpc-objects"
 
 gem "async-websocket"
+
+gem "debug"

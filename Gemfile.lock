@@ -31,6 +31,9 @@ GEM
       fiber-annotation
       fiber-local
       json
+    debug (1.9.1)
+      irb (~> 1.10)
+      reline (>= 0.3.8)
     em-websocket (0.5.3)
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0)
@@ -38,7 +41,11 @@ GEM
     fiber-annotation (0.2.0)
     fiber-local (1.0.0)
     http_parser.rb (0.8.0)
+    io-console (0.7.2)
     io-event (1.4.3)
+    irb (1.11.2)
+      rdoc
+      reline (>= 0.4.2)
     json (2.7.1)
     json-rpc-objects (0.4.6)
       abstract (>= 1.0.0)
@@ -60,9 +67,16 @@ GEM
       rack (>= 1.0)
     protocol-websocket (0.12.1)
       protocol-http (~> 0.2)
+    psych (5.1.2)
+      stringio
     public_suffix (5.0.4)
     rack (3.0.9)
+    rdoc (6.6.2)
+      psych (>= 4.0.0)
+    reline (0.4.2)
+      io-console (~> 0.5)
     ruby-version (0.4.3)
+    stringio (3.1.0)
     timers (4.3.5)
     traces (0.11.1)
     websocket (1.2.10)
@@ -86,6 +100,7 @@ PLATFORMS
 DEPENDENCIES
   async-websocket
   base64 (~> 0.2.0)
+  debug
   em-websocket (~> 0.5.3)
   json-rpc-objects
   websocket-driver (~> 0.7.6)
