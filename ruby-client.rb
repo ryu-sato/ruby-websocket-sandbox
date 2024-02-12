@@ -79,7 +79,7 @@ class JSONRPConWS < WS
         parsed_data
     end
 
-    def send_sync(data)
+    def send_and_wait_response(data)
         parsed_data = send(data)
         sleep_until { @response[parsed_data.id] }
 
@@ -101,4 +101,4 @@ ws = JSONRPConWS.new
 ws.connect_sync('ws://localhost:8888')
 
 rpc_json_data = JsonRpcObjects::V20::Request::create(:subtract, ["1", "2"], :id => "a2b3")
-p ws.send_sync(rpc_json_data.serialize)
+p ws.send_and_wait_response(rpc_json_data.serialize)
