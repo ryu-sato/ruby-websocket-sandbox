@@ -1,6 +1,7 @@
 require 'websocket-eventmachine-client'
 require "json-rpc-objects/v20/request"
 require "json-rpc-objects/request"
+require 'timeout'
 
 class WS
     def initialize
@@ -31,6 +32,17 @@ class WS
         end
     end
 
+    def self.initialize_sync
+        this = new
+        Timeout.timeout(30) do
+            while !this.initialized? do
+                sleep 0.1
+            end
+        end
+
+        this
+    end
+
     def initialized?
         @initialized
     end
@@ -41,28 +53,17 @@ class WS
 
         @ws.send(data)
 
-        timeout = 30 # seconds
-        while !@response[parsed_data.id] || timeout <= 0
-            sleep 1
-            timeout -= 1
-        end
-        if timeout <= 0
-            puts "Timed out waiting response"
-            return nil
+        Timeout.timeout(30) do
+            while !@response[parsed_data.id]
+                sleep 1
+            end
         end
 
         @response.delete(parsed_data.id)
     end
 end
 
-ws = WS.new
-while !ws.initialized? do
-    pp 'ws is nil'
-end
+ws = WS.initialize_sync
 
 rpc_json_data = JsonRpcObjects::V20::Request::create(:subtract, ["1", "2"], :id => "a2b3")
 ws.send_sync(rpc_json_data.serialize)
-
-p 'start with sleep 3s...'
-sleep(3)
-p 'finish'
